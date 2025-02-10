@@ -1,0 +1,676 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>حاسبة الجهد الهيكلي – تقدير وتحليل الجهد الهيكلي للمباني</title>
+  <!-- استدعاء الخطوط وأيقونات Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <!-- خط "Cairo" لتحسين العرض -->
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap">
+  <!-- مكتبة Chart.js للرسم البياني -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- مكتبة AOS لتأثيرات الحركة -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/aos@2.3.4/dist/aos.css">
+  <!-- مكتبة jsPDF لتصدير النتائج إلى PDF -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <!-- مكتبة SheetJS لتصدير النتائج إلى Excel -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <style>
+    /* إعدادات الخطوط والألوان الأساسية */
+    :root {
+      --primary-color: #8B4513;
+      --secondary-color: #1abc9c;
+      --accent-color: #FFD700;
+      --text-color: #333;
+      --bg-gradient: linear-gradient(45deg, #654321, #8B4513, #A0522D);
+    }
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      scroll-behavior: smooth;
+    }
+    body {
+      font-family: 'Cairo', sans-serif;
+      background: var(--bg-gradient);
+      background-size: 400% 400%;
+      min-height: 100vh;
+      position: relative;
+      direction: rtl;
+      color: var(--text-color);
+      transition: background 0.5s, color 0.5s;
+    }
+    body.light-mode {
+      --primary-color: #4a4a4a;
+      --secondary-color: #3498db;
+      --accent-color: #e67e22;
+      --text-color: #333;
+      --bg-gradient: linear-gradient(45deg, #f0f0f0, #fff);
+      background: var(--bg-gradient);
+    }
+    @keyframes gradientBG {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+    /* شاشة التحميل */
+    .loader {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: var(--bg-gradient);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 3000;
+    }
+    .loader::after {
+      content: "";
+      width: 50px;
+      height: 50px;
+      border: 5px solid var(--secondary-color);
+      border-top-color: var(--accent-color);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    
+    /* زر تغيير النظام */
+    #modeToggle {
+      position: fixed;
+      top: 20px;
+      left: 20px;
+      background: var(--secondary-color);
+      color: #fff;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 5px;
+      z-index: 2100;
+      cursor: pointer;
+      transition: background 0.3s, transform 0.3s;
+    }
+    #modeToggle:hover { background: #16a085; transform: scale(1.05); }
+    
+    /* تنسيق الحاوية الرئيسية */
+    .container {
+      max-width: 1200px;
+      margin: 30px auto;
+      padding: 30px;
+      background-color: #fff;
+      border-radius: 8px;
+      box-shadow: 0 0 15px rgba(0,0,0,0.1);
+      direction: rtl;
+    }
+    h1 {
+      text-align: center;
+      color: var(--primary-color);
+      margin-bottom: 20px;
+      font-size: 2.5em;
+    }
+    h2 {
+      color: var(--primary-color);
+      margin-bottom: 10px;
+      border-bottom: 2px solid var(--primary-color);
+      padding-bottom: 10px;
+      font-size: 1.8em;
+    }
+    h3 {
+      color: var(--secondary-color);
+      margin-bottom: 10px;
+      font-size: 1.6em;
+    }
+    label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: bold;
+    }
+    input, select, button {
+      width: 100%;
+      padding: 10px;
+      margin-bottom: 15px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      font-size: 16px;
+    }
+    button {
+      background-color: var(--primary-color);
+      color: #fff;
+      cursor: pointer;
+      border: none;
+      transition: background 0.3s, transform 0.3s;
+    }
+    button:hover { background-color: var(--accent-color); transform: scale(1.02); }
+    .section {
+      margin-bottom: 40px;
+      padding-bottom: 20px;
+      border-bottom: 1px solid #eee;
+    }
+    .result {
+      margin-top: 20px;
+      padding: 20px;
+      background-color: #ecf0f1;
+      border-radius: 4px;
+      text-align: center;
+      font-size: 1.2em;
+    }
+    .chart-container { margin-top: 30px; }
+    .export-buttons { margin-top: 20px; text-align: center; }
+    .export-buttons button { margin: 5px; }
+    .reset-button { background-color: #d9534f; margin-bottom: 20px; }
+    .reset-button:hover { background-color: #c9302c; }
+    
+    /* قسم حاسبة الجهد الهيكلي */
+    .calc-section {
+      margin-top: 20px;
+      padding: 15px;
+      background-color: #f7f7f7;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+    }
+    
+    /* قسم تحليل السيناريوهات */
+    #scenarioResults {
+      margin-top: 20px;
+      padding: 15px;
+      background-color: #f7f7f7;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+    }
+    #scenarioComparison {
+      margin-top: 20px;
+    }
+    
+    /* الأقسام التعليمية والتوضيحية */
+    .info-section {
+      margin-top: 40px;
+      padding: 20px;
+      background-color: #f9f9f9;
+      border-radius: 8px;
+      border: 1px solid #ddd;
+      font-size: 1.1em;
+    }
+    .info-section h2 { color: var(--primary-color); margin-bottom: 10px; }
+    .info-section p { margin-bottom: 10px; color: #555; line-height: 1.6; }
+    .info-section ul { list-style-type: disc; margin-right: 20px; color: #555; }
+    .info-section ul li { margin-bottom: 5px; }
+    
+    /* زر العودة للأعلى */
+    #backToTop {
+      position: fixed;
+      bottom: 40px;
+      right: 20px;
+      background: var(--secondary-color);
+      color: #fff;
+      border: none;
+      padding: 10px;
+      border-radius: 50%;
+      font-size: 1.5em;
+      cursor: pointer;
+      display: none;
+      z-index: 2000;
+      transition: background 0.3s;
+    }
+    #backToTop:hover { background: #16a085; }
+    
+    /* تأثير حركي للأزرار العامة */
+    .btn-animate {
+      transition: transform 0.3s, box-shadow 0.3s;
+    }
+    .btn-animate:hover {
+      transform: scale(1.05);
+      box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+    }
+    
+    /* تنسيق جدول السيناريوهات */
+    #scenarioComparison table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 15px;
+    }
+    #scenarioComparison th, #scenarioComparison td {
+      border: 1px solid #ccc;
+      padding: 10px;
+      text-align: center;
+    }
+    #scenarioComparison th { background-color: var(--primary-color); color: #fff; }
+  </style>
+</head>
+<body>
+  <!-- شاشة التحميل -->
+  <div id="loader" class="loader"></div>
+  
+  <div class="container">
+    <h1>حاسبة الجهد الهيكلي</h1>
+    <p style="text-align: center; color: #555;">أداة متقدمة لتقدير وتحليل الجهد الهيكلي لعناصر المنشآت وفقًا لأحدث المعايير الهندسية.</p>
+    
+    <!-- نموذج إدخال البيانات -->
+    <div class="section calc-section" id="dataSection" data-aos="fade-up">
+      <h2>مدخلات التصميم</h2>
+      <p style="color: #555; font-size: 1.1em;">
+        أدخل المعطيات التالية لتحليل الجهد الهيكلي لعناصر المنشأة (مثل الأعمدة). تشمل المدخلات:
+        <br>• أبعاد العنصر: العرض (b) والعمق (d) بوحدة المليمتر.
+        <br>• الأحمال المُؤثرة: الحمل الميت (DL)، الحمل الحي (LL)، حمل الرياح (WL) وحمل الزلازل (EL) إن وجد.
+        <br>• تُحسب الحمل التصميمي (U) باستخدام المعادلة:
+        <br>&nbsp;&nbsp;&nbsp; U = 1.2×DL + 1.6×LL + 0.5×WL + 1.0×EL.
+        <br>• يُحسب الجهد التصميمي (σ) على أساس مساحة المقطع (b×d).
+        <br>• يمكنك إدخال معامل أمان إضافي (Safety Factor) لمزيد من التحفظ في التصميم.
+      </p>
+      
+      <label for="colWidth" title="أدخل عرض العنصر (b) بوحدة المليمتر">عرض العنصر (b) (mm):</label>
+      <input type="number" id="colWidth" placeholder="مثال: 300" step="1">
+      
+      <label for="colDepth" title="أدخل عمق العنصر (d) بوحدة المليمتر">عمق العنصر (d) (mm):</label>
+      <input type="number" id="colDepth" placeholder="مثال: 300" step="1">
+      
+      <label for="deadLoad" title="أدخل الحمل الميت (DL) بالكيلو نيوتن">الحمل الميت (DL) (kN):</label>
+      <input type="number" id="deadLoad" placeholder="مثال: 200" step="0.1">
+      
+      <label for="liveLoad" title="أدخل الحمل الحي (LL) بالكيلو نيوتن">الحمل الحي (LL) (kN):</label>
+      <input type="number" id="liveLoad" placeholder="مثال: 150" step="0.1">
+      
+      <label for="windLoad" title="أدخل حمل الرياح (WL) بالكيلو نيوتن">حمل الرياح (WL) (kN):</label>
+      <input type="number" id="windLoad" placeholder="مثال: 50" step="0.1">
+      
+      <label for="seismicLoad" title="أدخل حمل الزلازل (EL) بالكيلو نيوتن (اختياري)">حمل الزلازل (EL) (kN):</label>
+      <input type="number" id="seismicLoad" placeholder="مثال: 0" step="0.1" value="0">
+      
+      <label for="materialStrength" title="أدخل مقاومة العنصر (f'c) بوحدة MPa">مقاومة العنصر (f'c) (MPa):</label>
+      <input type="number" id="materialStrength" placeholder="مثال: 30" step="1" value="30">
+      
+      <label for="safetyFactor" title="أدخل معامل الأمان المطلوب (مثلاً 1.5)">معامل الأمان:</label>
+      <input type="number" id="safetyFactor" placeholder="مثال: 1.5" step="0.1" value="1.5">
+      
+      <button onclick="calculateStructuralStress()" class="btn-animate"><i class="fas fa-calculator"></i> احسب الجهد الهيكلي</button>
+      <button class="reset-button btn-animate" onclick="resetStructuralCalculator()"><i class="fas fa-undo"></i> إعادة تعيين</button>
+    </div>
+    
+    <!-- عرض النتائج -->
+    <div class="result" id="stressResultSection" data-aos="fade-up">
+      <h2>نتائج الجهد الهيكلي</h2>
+      <p id="totalDesignLoad"></p>
+      <p id="structuralStress"></p>
+      <p id="safetyStatus"></p>
+      <div class="export-buttons">
+        <button onclick="printResult()" class="btn-animate"><i class="fas fa-print"></i> طباعة</button>
+        <button onclick="exportPDF()" class="btn-animate"><i class="fas fa-file-pdf"></i> مشاركة النتيجة</button>
+        <button onclick="exportExcel()" class="btn-animate"><i class="fas fa-file-excel"></i> تصدير إلى Excel</button>
+      </div>
+    </div>
+    
+    <!-- رسم بياني لعرض مقارنة الجهد التصميمي مع مقاومة العنصر -->
+    <div class="chart-container" data-aos="fade-up">
+      <canvas id="stressChart"></canvas>
+    </div>
+    
+    <!-- قسم تحليل السيناريوهات -->
+    <div class="section" data-aos="fade-up">
+      <h2>تحليل السيناريوهات</h2>
+      <p style="color: #555;">يمكنك تجربة نسب تحميل مختلفة لتعديل الأحمال مؤقتاً (مثلاً 80%، 100%، 120%)، ثم حفظ السيناريو الحالي وعرض جدول مقارنة لجميع السيناريوهات لتحليل تأثير التغييرات على الجهد التصميمي.</p>
+      <div style="display:flex; gap:10px; margin-bottom:20px;">
+        <button onclick="calculateScenario(0.8)" class="btn-animate"><i class="fas fa-percentage"></i> 80%</button>
+        <button onclick="calculateScenario(1)" class="btn-animate"><i class="fas fa-percentage"></i> 100%</button>
+        <button onclick="calculateScenario(1.2)" class="btn-animate"><i class="fas fa-percentage"></i> 120%</button>
+      </div>
+      <div id="scenarioResults"></div>
+      <button onclick="saveScenario()" class="btn-animate" style="margin-top:10px;"><i class="fas fa-save"></i> حفظ السيناريو الحالي</button>
+      <div id="scenarioComparison"></div>
+    </div>
+    
+    <!-- قسم دليل المستخدم التفصيلي -->
+    <div class="info-section" data-aos="fade-up">
+      <h2>دليل المستخدم - شرح تفصيلي للجهد الهيكلي</h2>
+      <p>تستخدم هذه الحاسبة لتقدير وتحليل الجهد الهيكلي لعناصر المنشآت (مثل الأعمدة) وفقًا لأحدث المعايير الهندسية. فيما يلي شرح مفصل للخطوات والمعادلات المستخدمة:</p>
+      <ul>
+        <li><strong>إدخال المعطيات:</strong> يتم إدخال أبعاد العنصر (العرض b والعمق d) بوحدة المليمتر، بالإضافة إلى الأحمال المختلفة:
+          <ul>
+            <li>الحمل الميت (DL) – يمثل الأحمال الدائمة مثل وزن الهيكل.</li>
+            <li>الحمل الحي (LL) – يمثل الأحمال المتغيرة الناتجة عن الاستخدام اليومي.</li>
+            <li>حمل الرياح (WL) – يؤخذ بعين الاعتبار تأثير الرياح على المنشأة.</li>
+            <li>حمل الزلازل (EL) – يُحسب في المناطق الزلزالية (اختياري).</li>
+          </ul>
+        </li>
+        <li><strong>حساب الحمل التصميمي (U):</strong> تُحسب قيمة الحمل التصميمي باستخدام المعادلة:
+          <br>&nbsp;&nbsp;&nbsp; U = 1.2×DL + 1.6×LL + 0.5×WL + 1.0×EL.
+        </li>
+        <li><strong>حساب الجهد التصميمي (σ):</strong> يتم تحويل الحمل التصميمي من kN إلى N (ضرب في 1000) ثم يُحسب الجهد التصميمي باستخدام:
+          <br>&nbsp;&nbsp;&nbsp; σ = (U×1000) ÷ (b×d) (بوحدة N/mm² أو MPa).
+        </li>
+        <li><strong>تطبيق معامل الأمان:</strong> يمكن إدخال معامل الأمان (Safety Factor) لزيادة الحيطة؛ حيث يتم مقارنة σ مع f'c مُقسومة على معامل الأمان.
+        </li>
+        <li><strong>المقارنة مع مقاومة العنصر:</strong> إذا كان الجهد التصميمي (σ) أقل من f'c (بعد تطبيق معامل الأمان)، يكون التصميم آمنًا؛ وإلا فإنه يحتاج إلى إعادة التصميم.
+        </li>
+        <li><strong>عرض المخطط البياني:</strong> يتم رسم مخطط بياني عمودي باستخدام Chart.js يقارن بين الجهد التصميمي (σ) ومقاومة العنصر (f'c).
+        </li>
+        <li><strong>تحليل السيناريوهات:</strong> يمكن تعديل الأحمال بنسبة معينة (مثل 80%، 100%، 120%) لتقييم تأثير التغييرات على σ، مع إمكانية حفظ السيناريو وعرض جدول مقارنة مفصل.
+        </li>
+        <li><strong>التصدير والطباعة:</strong> تتوفر خيارات لتصدير النتائج إلى PDF أو Excel أو طباعتها مباشرةً.
+        </li>
+      </ul>
+      <p>تُعد هذه الحاسبة أداة تقديرية أولية تساعد في تقييم الجهد الهيكلي لعناصر المنشآت، وينبغي استخدامها مع برامج التصميم الهندسي لإجراء التحليل التفصيلي والتأكد من سلامة التصميم.</p>
+    </div>
+    
+    <div class="info-section" data-aos="fade-up">
+      <h2>المعايير الدولية وأهمية الجهد الهيكلي</h2>
+      <p>تعتمد المنشآت على معايير دولية دقيقة لتحليل الجهد الهيكلي، مما يساهم في ضمان استقرار المنشأة وسلامتها وتقليل المخاطر الإنشائية. يُعتبر تحليل الجهد الهيكلي خطوة أساسية في التصميم الإنشائي لضمان الأداء الأمثل.</p>
+    </div>
+    
+  </div>
+  
+  <!-- زر العودة للأعلى -->
+  <button id="backToTop" title="العودة للأعلى" aria-label="العودة للأعلى">↑</button>
+  
+  <!-- الفوتر (يظهر مرة واحدة فقط) -->
+  <footer style="background: #333; color: #ccc; padding: 20px; text-align: center; direction: rtl; margin-top: 40px;">
+    <p style="margin-bottom: 10px;">© 2024 منصة الاتحاد العام للمقاولين اليمنيين - جميع الحقوق محفوظة</p>
+    <p>
+      <a href="https://guyc-yemen.com/" style="color: var(--accent-color); text-decoration: none;">الموقع الرسمي</a> |
+      <a href="mailto:info@guyc-ye.com" style="color: var(--accent-color); text-decoration: none;">البريد الإلكتروني</a> |
+      <a href="tel:01450553" style="color: var(--accent-color); text-decoration: none;">01-450553</a>
+    </p>
+    <p style="margin-top: 10px;">
+      <a href="#" style="color: var(--accent-color); margin: 0 5px; text-decoration: none;"><i class="fab fa-facebook"></i></a>
+      <a href="#" style="color: var(--accent-color); margin: 0 5px; text-decoration: none;"><i class="fab fa-twitter"></i></a>
+      <a href="#" style="color: var(--accent-color); margin: 0 5px; text-decoration: none;"><i class="fab fa-youtube"></i></a>
+      <a href="#" style="color: var(--accent-color); margin: 0 5px; text-decoration: none;"><i class="fab fa-whatsapp"></i></a>
+    </p>
+  </footer>
+  
+  <!-- استدعاء مكتبة AOS -->
+  <script src="https://cdn.jsdelivr.net/npm/aos@2.3.4/dist/aos.js"></script>
+  <script>
+    window.addEventListener('load', () => {
+      AOS.init();
+      document.getElementById('loader').style.display = 'none';
+      loadInputs();
+    });
+  </script>
+  
+  <!-- دوال حاسبة الجهد الهيكلي -->
+  <script>
+    // حفظ البيانات في localStorage
+    function saveInputs() {
+      const inputs = {
+        projectName: document.getElementById('projectName').value,
+        totalCost: document.getElementById('totalCost').value,
+        exchangeRate: document.getElementById('exchangeRate').value,
+        buildingType: document.getElementById('buildingType').value,
+        buildingUsage: document.getElementById('buildingUsage').value,
+        financingType: document.getElementById('financingType').value,
+        financingPercent: document.getElementById('financingPercent').value,
+        annualRevenue: document.getElementById('annualRevenue').value,
+        annualExpenses: document.getElementById('annualExpenses').value,
+        interestRate: document.getElementById('interestRate').value,
+        projectDuration: document.getElementById('projectDuration').value
+      };
+      localStorage.setItem('engCalcInputs', JSON.stringify(inputs));
+    }
+    
+    // استعادة البيانات من localStorage
+    function loadInputs() {
+      const saved = localStorage.getItem('engCalcInputs');
+      if (saved) {
+        const inputs = JSON.parse(saved);
+        document.getElementById('projectName').value = inputs.projectName || "";
+        document.getElementById('totalCost').value = inputs.totalCost || "";
+        document.getElementById('exchangeRate').value = inputs.exchangeRate || "250";
+        document.getElementById('buildingType').value = inputs.buildingType || "residential";
+        document.getElementById('buildingUsage').value = inputs.buildingUsage || "residential";
+        document.getElementById('financingType').value = inputs.financingType || "bankLoan";
+        document.getElementById('financingPercent').value = inputs.financingPercent || "30";
+        document.getElementById('annualRevenue').value = inputs.annualRevenue || "";
+        document.getElementById('annualExpenses').value = inputs.annualExpenses || "";
+        document.getElementById('interestRate').value = inputs.interestRate || "8";
+        document.getElementById('projectDuration').value = inputs.projectDuration || "10";
+      }
+    }
+    
+    // زر تحديث سعر الصرف (إن وجد)
+    function updateExchangeRate() {
+      fetch("https://api.exchangerate-api.com/v4/latest/USD")
+        .then(response => response.json())
+        .then(data => {
+          if(data && data.rates && data.rates["YER"]) {
+            const rate = data.rates["YER"];
+            document.getElementById("exchangeRate").value = rate;
+            alert("تم تحديث سعر الصرف: " + rate);
+            saveInputs();
+          } else {
+            alert("تعذر الحصول على سعر الصرف.");
+          }
+        })
+        .catch(err => alert("فشل تحديث سعر الصرف: " + err));
+    }
+    
+    // استخدام debounce لتحديث النتائج تلقائيًا
+    const inputFields = document.querySelectorAll('#dataSection input, #dataSection select');
+    let debounceTimer;
+    inputFields.forEach(field => {
+      field.addEventListener('input', () => {
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(() => {
+          calculateStructuralStress();
+          saveInputs();
+        }, 500);
+      });
+    });
+    
+    // دالة حساب الجهد الهيكلي
+    function calculateStructuralStress() {
+      // قراءة المعطيات الأساسية
+      const b = parseFloat(document.getElementById('colWidth').value);   // عرض العنصر (mm)
+      const d = parseFloat(document.getElementById('colDepth').value);     // عمق العنصر (mm)
+      const DL = parseFloat(document.getElementById('deadLoad').value) || 0; // الحمل الميت (kN)
+      const LL = parseFloat(document.getElementById('liveLoad').value) || 0; // الحمل الحي (kN)
+      const WL = parseFloat(document.getElementById('windLoad').value) || 0; // حمل الرياح (kN)
+      const EL = parseFloat(document.getElementById('seismicLoad').value) || 0; // حمل الزلازل (kN)
+      const fc = parseFloat(document.getElementById('materialStrength').value); // مقاومة العنصر (MPa)
+      const safetyFactor = parseFloat(document.getElementById('safetyFactor').value) || 1;
+      
+      // التأكد من صحة المدخلات
+      if (!b || b <= 0 || !d || d <= 0 || !fc || fc <= 0) return;
+      
+      // حساب الحمل التصميمي (U) باستخدام معاملات التحميل:
+      // U = 1.2×DL + 1.6×LL + 0.5×WL + 1.0×EL
+      const U = (1.2 * DL) + (1.6 * LL) + (0.5 * WL) + (1.0 * EL);
+      
+      // حساب الجهد التصميمي (σ)
+      // تحويل U من kN إلى N بضربه في 1000، ثم:
+      // σ = (U×1000) ÷ (b×d)
+      const sigma = (U * 1000) / (b * d);
+      
+      // تطبيق معامل الأمان على مقاومة العنصر
+      const effectiveStrength = fc / safetyFactor;
+      
+      // تحديث عرض النتائج
+      document.getElementById('totalDesignLoad').innerText = "الحمل التصميمي (U): " + U.toFixed(2) + " kN";
+      document.getElementById('structuralStress').innerText = "الجهد التصميمي (σ): " + sigma.toFixed(2) + " MPa";
+      
+      // مقارنة الجهد التصميمي مع مقاومة العنصر بعد تطبيق معامل الأمان
+      if (sigma < effectiveStrength) {
+        document.getElementById('safetyStatus').innerText = "التصميم آمن: σ أقل من (f'c ÷ معامل الأمان).";
+      } else {
+        document.getElementById('safetyStatus').innerText = "التصميم غير آمن: σ أعلى من (f'c ÷ معامل الأمان).";
+      }
+      
+      // تحديث الرسم البياني: رسم عمودي يقارن الجهد التصميمي مع المقاومة الفعالة (f'c ÷ معامل الأمان)
+      updateStressChart(sigma, effectiveStrength);
+      
+      // تحديث قسم السيناريو الأساسي
+      updateScenarioResult(
+        "U: " + U.toFixed(2) + " kN",
+        "σ: " + sigma.toFixed(2) + " MPa",
+        "المقاومة الفعالة: " + effectiveStrength.toFixed(2) + " MPa",
+        "",
+        "السيناريو الأساسي"
+      );
+    }
+    
+    // دالة تحديث الرسم البياني للجهد باستخدام Chart.js
+    let stressChartInstance;
+    function updateStressChart(sigma, effectiveStrength) {
+      const ctx = document.getElementById('stressChart').getContext('2d');
+      const data = {
+        labels: ["الجهد التصميمي (σ)", "المقاومة الفعالة (f'c ÷ Safety)"],
+        datasets: [{
+          label: "القيم (MPa)",
+          data: [sigma, effectiveStrength],
+          backgroundColor: ["rgba(231,76,60,0.6)", "rgba(26,188,156,0.6)"],
+          borderColor: ["rgba(231,76,60,1)", "rgba(26,188,156,1)"],
+          borderWidth: 2
+        }]
+      };
+      if (stressChartInstance) {
+        stressChartInstance.data = data;
+        stressChartInstance.update();
+      } else {
+        stressChartInstance = new Chart(ctx, {
+          type: 'bar',
+          data: data,
+          options: {
+            responsive: true,
+            scales: { y: { beginAtZero: true, title: { display: true, text: "MPa" } } }
+          }
+        });
+      }
+    }
+    
+    // متغير لتخزين معامل الأحمال الحالي في السيناريو (افتراضي 1)
+    var currentLoadFactor = 1;
+    
+    // دالة تحليل السيناريوهات: تعديل قيمة أحد الأحمال (مثلاً الحمل الحي) مؤقتاً وإعادة الحساب
+    function calculateScenario(loadFactor) {
+      currentLoadFactor = loadFactor;
+      let baseLiveLoad = parseFloat(document.getElementById('liveLoad').value) || 0;
+      let modifiedLiveLoad = baseLiveLoad * loadFactor;
+      document.getElementById('liveLoad').value = modifiedLiveLoad;
+      calculateStructuralStress();
+      let scenarioText = `<h3>سيناريو تحميل بنسبة ${loadFactor * 100}%</h3>
+        <p><strong>${document.getElementById('totalDesignLoad').innerText}</strong></p>
+        <p><strong>${document.getElementById('structuralStress').innerText}</strong></p>
+        <p><strong>${document.getElementById('safetyStatus').innerText}</strong></p>`;
+      document.getElementById('scenarioResults').innerHTML = scenarioText;
+      document.getElementById('liveLoad').value = baseLiveLoad;
+    }
+    
+    // دالة تحديث عرض نتائج السيناريو الأساسي
+    function updateScenarioResult(UText, sigmaText, effectiveText, extra, scenarioName) {
+      const scenarioDiv = document.getElementById('scenarioResults');
+      scenarioDiv.innerHTML = `
+        <h3>${scenarioName}</h3>
+        <p><strong>${UText}</strong></p>
+        <p><strong>${sigmaText}</strong></p>
+        <p><strong>${effectiveText}</strong></p>
+        ${extra}
+      `;
+    }
+    
+    // حفظ السيناريو الحالي للمقارنة
+    let savedScenarios = [];
+    function saveScenario() {
+      const scenario = {
+        projectName: document.getElementById('projectName').value || "المشروع غير محدد",
+        loadFactor: currentLoadFactor,
+        designLoad: document.getElementById('totalDesignLoad').innerText,
+        structuralStress: document.getElementById('structuralStress').innerText,
+        materialStrength: document.getElementById('materialStrength').value,
+        timestamp: new Date().toLocaleString()
+      };
+      savedScenarios.push(scenario);
+      updateScenarioComparison();
+    }
+    
+    // عرض مقارنة السيناريوهات المحفوظة
+    function updateScenarioComparison() {
+      const compDiv = document.getElementById('scenarioComparison');
+      if (savedScenarios.length === 0) {
+        compDiv.innerHTML = "<p>لا توجد سيناريوهات محفوظة.</p>";
+        return;
+      }
+      let tableHTML = `<table>
+                          <thead>
+                            <tr style="background-color: var(--primary-color); color: #fff;">
+                              <th style="padding: 10px;">التاريخ</th>
+                              <th style="padding: 10px;">نسبة الحمل</th>
+                              <th style="padding: 10px;">الحمل التصميمي</th>
+                              <th style="padding: 10px;">الجهد التصميمي</th>
+                              <th style="padding: 10px;">المقاومة الفعالة</th>
+                            </tr>
+                          </thead>
+                          <tbody>`;
+      savedScenarios.forEach(scn => {
+        tableHTML += `<tr>
+                        <td style="padding: 10px;">${scn.timestamp}</td>
+                        <td style="padding: 10px;">${scn.loadFactor * 100}%</td>
+                        <td style="padding: 10px;">${scn.designLoad}</td>
+                        <td style="padding: 10px;">${scn.structuralStress}</td>
+                        <td style="padding: 10px;">${scn.materialStrength} MPa</td>
+                      </tr>`;
+      });
+      tableHTML += `</tbody></table>`;
+      compDiv.innerHTML = `<h3>مقارنة السيناريوهات المحفوظة</h3>` + tableHTML;
+    }
+    
+    // تصدير النتائج إلى PDF باستخدام jsPDF
+    function exportPDF() {
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF("p", "mm", "a4");
+      doc.setFont("Arial", "normal");
+      doc.text("تقرير حاسبة الجهد الهيكلي", 20, 20);
+      const results = document.getElementById("stressResultSection").innerText;
+      doc.text(results, 20, 40);
+      doc.text("يرجى مراجعة باقي الأقسام للحصول على التفاصيل الكاملة.", 20, 60);
+      doc.save("تقرير_الجهد_الهيكلي.pdf");
+    }
+    
+    // تصدير النتائج إلى Excel باستخدام SheetJS
+    function exportExcel() {
+      let data = [
+        ["الحمل التصميمي (U)", document.getElementById('totalDesignLoad').innerText],
+        ["الجهد التصميمي (σ)", document.getElementById('structuralStress').innerText],
+        ["مقاومة العنصر (f'c)", document.getElementById('materialStrength').value + " MPa"]
+      ];
+      let ws = XLSX.utils.aoa_to_sheet(data);
+      let wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "النتائج");
+      XLSX.writeFile(wb, "تقرير_الجهد_الهيكلي.xlsx");
+    }
+    
+    // دالة الطباعة
+    function printResult() {
+      window.print();
+    }
+    
+    // دالة إعادة تعيين الحقول لحاسبة الجهد الهيكلي
+    function resetStructuralCalculator() {
+      document.getElementById('projectName').value = "";
+      document.getElementById('totalCost').value = "";
+      document.getElementById('exchangeRate').value = "250";
+      document.getElementById('buildingType').selectedIndex = 0;
+      document.getElementById('buildingUsage').selectedIndex = 0;
+      document.getElementById('financingType').selectedIndex = 0;
+      document.getElementById('financingPercent').value = "30";
+      document.getElementById('annualRevenue').value = "";
+      document.getElementById('annualExpenses').value = "";
+      document.getElementById('interestRate').value = "8";
+      document.getElementById('projectDuration').value = "10";
+      // مدخلات الجهد الهيكلي
+      document.getElementById('colWidth').value = "";
+      document.getElementById('colDepth').value = "";
+      document.getElementById('deadLoad').value = "";
+      document.getElementById('liveLoad').value = "";
+      document.getElementById('windLoad').value = "";
+      document.getElementById('seismicLoad').value = "0";
+      document.getElementById('materialStrength').value = "30";
+      document.getElementById('safetyFactor').value = "1.5";
+      document.getElementById('stressResultSection').innerHTML = "<h2>نتائج الجهد الهيكلي</h2>";
+      if (stressChartInstance) {
+        stressChartInstance.destroy();
+      }
+      document.getElementById('scenarioResults').innerHTML = "";
+      document.getElementById('scenarioComparison').innerHTML = "";
+      savedScenarios = [];
+      saveInputs();
+    }
+  </script>
+</body>
+</html>

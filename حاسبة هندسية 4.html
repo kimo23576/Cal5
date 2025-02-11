@@ -233,6 +233,45 @@
       text-align: center;
     }
     #scenarioComparison th { background-color: var(--primary-color); color: #fff; }
+    
+    /* التنسيق المتجاوب */
+    @media (max-width: 992px) {
+      .container {
+        margin: 20px;
+        padding: 20px;
+      }
+      h1 { font-size: 2em; }
+      h2 { font-size: 1.6em; }
+      h3 { font-size: 1.4em; }
+      input, select, button { font-size: 14px; padding: 8px; }
+      .result { font-size: 1em; padding: 15px; }
+    }
+    
+    @media (max-width: 768px) {
+      .container { margin: 10px; padding: 15px; }
+      h1 { font-size: 1.8em; }
+      h2 { font-size: 1.4em; }
+      h3 { font-size: 1.2em; }
+      input, select, button { font-size: 13px; padding: 6px; }
+      table, thead, tbody, th, td, tr { display: block; }
+      table { overflow-x: auto; white-space: nowrap; }
+      #scenarioComparison table { display: block; overflow-x: auto; }
+    }
+    
+    @media (max-width: 480px) {
+      #modeToggle {
+        top: 10px;
+        left: 10px;
+        padding: 8px 12px;
+        font-size: 12px;
+      }
+      #backToTop {
+        bottom: 20px;
+        right: 10px;
+        padding: 8px;
+        font-size: 1.2em;
+      }
+    }
   </style>
 </head>
 <body>
@@ -306,7 +345,7 @@
     <div class="section" data-aos="fade-up">
       <h2>تحليل السيناريوهات</h2>
       <p style="color: #555;">يمكنك تجربة نسب تحميل مختلفة لتعديل الأحمال مؤقتاً (مثلاً 80%، 100%، 120%)، ثم حفظ السيناريو الحالي وعرض جدول مقارنة لجميع السيناريوهات لتحليل تأثير التغييرات على الجهد التصميمي.</p>
-      <div style="display:flex; gap:10px; margin-bottom:20px;">
+      <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 20px;">
         <button onclick="calculateScenario(0.8)" class="btn-animate"><i class="fas fa-percentage"></i> 80%</button>
         <button onclick="calculateScenario(1)" class="btn-animate"><i class="fas fa-percentage"></i> 100%</button>
         <button onclick="calculateScenario(1.2)" class="btn-animate"><i class="fas fa-percentage"></i> 120%</button>
@@ -332,7 +371,7 @@
         <li><strong>حساب الحمل التصميمي (U):</strong> تُحسب قيمة الحمل التصميمي باستخدام المعادلة:
           <br>&nbsp;&nbsp;&nbsp; U = 1.2×DL + 1.6×LL + 0.5×WL + 1.0×EL.
         </li>
-        <li><strong>حساب الجهد التصميمي (σ):</strong> يتم تحويل الحمل التصميمي من kN إلى N (ضرب في 1000) ثم يُحسب الجهد التصميمي باستخدام:
+        <li><strong>حساب الجهد التصميمي (σ):</strong> يتم تحويل الحمل التصميمي من kN إلى N (ضربه في 1000) ثم يُحسب الجهد التصميمي باستخدام:
           <br>&nbsp;&nbsp;&nbsp; σ = (U×1000) ÷ (b×d) (بوحدة N/mm² أو MPa).
         </li>
         <li><strong>تطبيق معامل الأمان:</strong> يمكن إدخال معامل الأمان (Safety Factor) لزيادة الحيطة؛ حيث يتم مقارنة σ مع f'c مُقسومة على معامل الأمان.
@@ -359,7 +398,7 @@
   <!-- زر العودة للأعلى -->
   <button id="backToTop" title="العودة للأعلى" aria-label="العودة للأعلى">↑</button>
   
-  <!-- الفوتر (يظهر مرة واحدة فقط) -->
+  <!-- الفوتر -->
   <footer style="background: #333; color: #ccc; padding: 20px; text-align: center; direction: rtl; margin-top: 40px;">
     <p style="margin-bottom: 10px;">© 2024 منصة الاتحاد العام للمقاولين اليمنيين - جميع الحقوق محفوظة</p>
     <p>
